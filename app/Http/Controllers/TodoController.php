@@ -62,7 +62,8 @@ class TodoController extends Controller
      */
     public function edit(Todo $todo)
     {
-        //
+        abort_if($todo->user_id !== auth()->id(), 404);
+        return view('todos.edit', compact('todo'));
     }
 
     /**
