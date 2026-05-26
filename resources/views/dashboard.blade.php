@@ -27,9 +27,6 @@
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ count($teamMembers) }} Members</h3>
                     <div class="flex items-center gap-2 mb-4">
                         @foreach($teamMembers->take(6) as $member)
-                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
-                                {{ substr($member->name, 0, 1) }}
-                            </div>
                         @endforeach
                         @if(count($teamMembers) > 6)
                             <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-700 text-xs font-bold">
@@ -38,7 +35,9 @@
                         @endif
                     </div>
                     <button class="w-full bg-indigo-100 text-indigo-600 rounded-full py-2 hover:bg-indigo-200 transition">
-                        <span class="text-xl">+</span>
+                        <a href="{{ route('categories.index') }}" class="btn-styling">
+                            Tambah Kategori
+                        </a>
                     </button>
                 </div>
             </div>
@@ -80,11 +79,6 @@
                     <div class="bg-white rounded-3xl shadow-lg p-8">
                         <div class="flex items-center justify-between mb-6">
                             <h2 class="text-xl font-bold text-gray-900">Calendar</h2>
-                            <button class="text-gray-400 hover:text-gray-600">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M5 12a7 7 0 1114 0 7 7 0 01-14 0z"></path>
-                                </svg>
-                            </button>
                         </div>
 
                         <!-- Month Display -->
@@ -139,11 +133,9 @@
                     <div class="bg-white rounded-3xl shadow-lg p-6 mb-6">
                         <div class="flex items-center justify-between mb-4">
                             <h2 class="text-xl font-bold text-gray-900">Plan</h2>
-                            <button class="text-gray-400 hover:text-gray-600">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M5 12a7 7 0 1114 0 7 7 0 01-14 0z"></path>
-                                </svg>
-                            </button>
+                            <a href="{{ route('todos.index') }}" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">
+                                View All
+                            </a>
                         </div>
 
                         <div class="space-y-3">
@@ -196,25 +188,25 @@
 
     <!-- Bottom Navigation Icon Bar (Mobile style) -->
     <div class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900 rounded-full px-8 py-3 shadow-lg flex gap-4">
-        <button class="text-indigo-500 hover:text-indigo-400">
-            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M3 13h2v8H3zm4-8h2v16H7zm4-2h2v18h-2zm4 4h2v14h-2zm4-4h2v18h-2z"></path>
+        <a href="{{ route('dashboard') }}" class="text-gray-400 hover:text-gray-300">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
             </svg>
-        </button>
-        <button class="text-gray-400 hover:text-gray-300">
+        </a>
+        <a href="{{ route('todos.index') }}" class="text-gray-400 hover:text-gray-300">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
             </svg>
-        </button>
-        <button class="text-gray-400 hover:text-gray-300">
+        </a>
+        <a href="{{ route('habits.index') }}" class="text-gray-400 hover:text-gray-300">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
-        </button>
-        <button class="text-gray-400 hover:text-gray-300">
+        </a>
+        <a href="{{ route('profile.edit') }}" class="text-gray-400 hover:text-gray-300">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
             </svg>
-        </button>
+        </a>
     </div>
 </x-app-layout>
