@@ -1,212 +1,379 @@
-<x-app-layout>
-    <div class="py-8 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
-        <div class="max-w-7xl mx-auto">
-            <!-- Header Section -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                <!-- Welcome Card -->
-                <div class="lg:col-span-2">
-                    <div class="bg-white rounded-3xl shadow-lg p-8">
-                        <div class="flex items-start justify-between mb-6">
-                            <div>
-                                <p class="text-gray-500 text-sm mb-1">Good {{ \Carbon\Carbon::now()->hour < 12 ? 'Morning' : 'Afternoon' }}!</p>
-                                <h1 class="text-3xl font-bold text-gray-900">{{ Auth::user()->name }}</h1>
-                            </div>
-                            <div class="w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center text-white text-xl">
-                                {{ substr(Auth::user()->name, 0, 1) }}
-                            </div>
-                        </div>
-                        <div class="mb-6">
-                            <p class="text-gray-600 text-lg font-semibold">You have <span class="text-4xl font-bold text-indigo-600">{{ $todaysTodosCount }}</span></p>
-                            <p class="text-gray-600">task for today</p>
-                        </div>
-                    </div>
-                </div>
+@extends('layouts.app')
+@section('title', 'Dashboard')
+@section('page-title', 'Dashboard')
 
-                <!-- Team Members Card -->
-                <div class="bg-white rounded-3xl shadow-lg p-8">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ count($teamMembers) }} Members</h3>
-                    <div class="flex items-center gap-2 mb-4">
-                        @foreach($teamMembers->take(6) as $member)
-                        @endforeach
-                        @if(count($teamMembers) > 6)
-                            <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-700 text-xs font-bold">
-                                +{{ count($teamMembers) - 6 }}
-                            </div>
-                        @endif
-                    </div>
-                    <button class="w-full bg-indigo-100 text-indigo-600 rounded-full py-2 hover:bg-indigo-200 transition">
-                        <a href="{{ route('categories.index') }}" class="btn-styling">
-                            Tambah Kategori
-                        </a>
-                    </button>
-                </div>
-            </div>
+@push('styles')
+<style>
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 16px;
+        margin-bottom: 28px;
+    }
 
-            <!-- Main Content -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Next Task / Calendar Section -->
-                <div class="lg:col-span-2">
-                    <!-- Next Task Card -->
-                    @if($upcomingTodos->isNotEmpty())
-                        <div class="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-3xl shadow-lg p-8 mb-6 text-white">
-                            <div class="flex items-start justify-between mb-6">
-                                <div>
-                                    <h2 class="text-2xl font-bold mb-2">Next Task</h2>
-                                    <p class="text-indigo-100 text-sm">Upcoming</p>
-                                </div>
-                                <div class="w-16 h-16 bg-white bg-opacity-20 rounded-2xl flex items-center justify-center">
-                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="bg-white bg-opacity-20 rounded-2xl p-4">
-                                <p class="font-semibold text-lg mb-2">{{ $upcomingTodos[0]->title }}</p>
-                                <p class="text-indigo-100 text-sm mb-3">{{ $upcomingTodos[0]->description ?? 'No description' }}</p>
-                                @if($upcomingTodos[0]->deadline)
-                                    <div class="flex items-center gap-2 text-sm">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                        </svg>
-                                        {{ $upcomingTodos[0]->deadline->format('M d, Y') }}
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
-                    @endif
+    .stat-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
 
-                    <!-- Calendar Section -->
-                    <div class="bg-white rounded-3xl shadow-lg p-8">
-                        <div class="flex items-center justify-between mb-6">
-                            <h2 class="text-xl font-bold text-gray-900">Calendar</h2>
-                        </div>
+    .stat-icon {
+        width: 40px; height: 40px;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .stat-icon svg { width: 20px; height: 20px; stroke: white; fill: none; stroke-width: 2; }
+    .stat-icon.purple { background: var(--primary); }
+    .stat-icon.green  { background: var(--success); }
+    .stat-icon.orange { background: var(--warning); }
+    .stat-icon.red    { background: var(--danger); }
 
-                        <!-- Month Display -->
-                        <div class="text-center mb-6">
-                            <h3 class="text-lg font-semibold text-gray-900">{{ $currentMonth->format('F') }}</h3>
-                        </div>
+    .stat-value { font-size: 28px; font-weight: 800; color: var(--text-main); line-height: 1; }
+    .stat-label { font-size: 13px; color: var(--text-muted); font-weight: 500; }
 
-                        <!-- Weekday Headers -->
-                        <div class="grid grid-cols-7 gap-2 mb-4">
-                            @foreach(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as $day)
-                                <div class="text-center text-sm font-semibold text-gray-500">{{ $day }}</div>
-                            @endforeach
-                        </div>
+    .stat-sub {
+        font-size: 12px;
+        color: var(--success);
+        font-weight: 600;
+    }
+    .stat-sub.warn { color: var(--warning); }
 
-                        <!-- Calendar Days -->
-                        <div class="grid grid-cols-7 gap-2">
-                            @php
-                                $firstDay = $currentMonth->copy()->startOfMonth();
-                                $lastDay = $currentMonth->copy()->endOfMonth();
-                                $startDate = $firstDay->copy()->startOfWeek();
-                                $endDate = $lastDay->copy()->endOfWeek();
-                                $currentDate = $startDate->copy();
-                                $today = \Carbon\Carbon::today();
-                            @endphp
+    /* ===== TWO COLUMNS ===== */
+    .dashboard-cols {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
 
-                            @while($currentDate <= $endDate)
-                                @php
-                                    $isToday = $currentDate->isToday();
-                                    $isCurrent = $currentDate->month === $currentMonth->month;
-                                    $todosCount = $monthTodos->filter(fn($todo) => $todo->deadline->isSameDay($currentDate))->count();
-                                @endphp
-                                <div class="text-center">
-                                    <button class="w-full aspect-square rounded-lg text-sm font-medium transition 
-                                        {{ $isToday ? 'bg-indigo-600 text-white' : ($isCurrent ? 'text-gray-900 hover:bg-gray-100' : 'text-gray-300') }}">
-                                        {{ $currentDate->day }}
-                                        @if($todosCount > 0)
-                                            <div class="text-xs mt-1">
-                                                <span class="inline-block w-1 h-1 {{ $isToday ? 'bg-white' : 'bg-indigo-500' }} rounded-full"></span>
-                                            </div>
-                                        @endif
-                                    </button>
-                                </div>
-                                @php $currentDate->addDay() @endphp
-                            @endwhile
-                        </div>
-                    </div>
-                </div>
+    @media (max-width: 900px) {
+        .dashboard-cols { grid-template-columns: 1fr; }
+    }
 
-                <!-- Right Sidebar - Plan & Tasks -->
-                <div>
-                    <!-- Plan Card -->
-                    <div class="bg-white rounded-3xl shadow-lg p-6 mb-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h2 class="text-xl font-bold text-gray-900">Plan</h2>
-                            <a href="{{ route('todos.index') }}" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">
-                                View All
-                            </a>
-                        </div>
+    /* ===== CARDS ===== */
+    .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+    }
 
-                        <div class="space-y-3">
-                            @forelse($todayTodos->take(4) as $todo)
-                                <div class="bg-gradient-to-r {{ $loop->iteration % 4 === 1 ? 'from-indigo-400 to-indigo-500' : ($loop->iteration % 4 === 2 ? 'from-yellow-400 to-yellow-500' : 'from-pink-400 to-pink-500') }} rounded-2xl p-4 text-white">
-                                    <div class="flex items-start justify-between">
-                                        <div class="flex-1">
-                                            <h3 class="font-semibold text-sm mb-1">{{ $todo->title }}</h3>
-                                            @if($todo->deadline)
-                                                <p class="text-xs opacity-90">{{ $todo->deadline->format('g:i A') }}</p>
-                                            @endif
-                                        </div>
-                                        <button class="text-lg hover:scale-110 transition">
-                                            {{ $todo->is_done ? '✓' : '○' }}
-                                        </button>
-                                    </div>
-                                </div>
-                            @empty
-                                <div class="bg-gray-50 rounded-2xl p-4 text-center text-gray-500">
-                                    <p class="text-sm">No tasks for today</p>
-                                </div>
-                            @endforelse
-                        </div>
-                    </div>
+    .card-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
 
-                    <!-- Habits Section -->
-                    @if($habits->isNotEmpty())
-                        <div class="bg-white rounded-3xl shadow-lg p-6">
-                            <h2 class="text-xl font-bold text-gray-900 mb-4">Habits</h2>
-                            <div class="space-y-3">
-                                @foreach($habits->take(3) as $habit)
-                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
-                                        <div>
-                                            <p class="font-medium text-gray-900 text-sm">{{ $habit->name }}</p>
-                                            <p class="text-xs text-gray-500">{{ ucfirst($habit->frequency) }}</p>
-                                        </div>
-                                        <div class="text-right">
-                                            <p class="text-lg font-bold text-indigo-600">{{ $habit->streak_count }}</p>
-                                            <p class="text-xs text-gray-500">streak</p>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
-                </div>
-            </div>
+    .card-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-main);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .card-title svg { width: 16px; height: 16px; stroke: var(--primary); fill: none; stroke-width: 2; }
+
+    .card-link {
+        font-size: 12px;
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 600;
+    }
+    .card-link:hover { text-decoration: underline; }
+
+    /* ===== TODO LIST ===== */
+    .todo-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 12px 20px;
+        border-bottom: 1px solid var(--border);
+        transition: background .15s;
+    }
+    .todo-item:last-child { border-bottom: none; }
+    .todo-item:hover { background: var(--bg-page); }
+
+    .todo-check {
+        width: 18px; height: 18px;
+        border-radius: 50%;
+        border: 2px solid var(--border);
+        flex-shrink: 0;
+        margin-top: 2px;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer;
+    }
+    .todo-check.done {
+        background: var(--success);
+        border-color: var(--success);
+    }
+    .todo-check.done svg { width: 10px; height: 10px; stroke: white; fill: none; stroke-width: 3; }
+
+    .todo-text { font-size: 14px; color: var(--text-main); line-height: 1.4; }
+    .todo-text.done { text-decoration: line-through; color: var(--text-muted); }
+
+    .todo-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 4px;
+    }
+
+    .category-badge {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 20px;
+        color: white;
+    }
+
+    .deadline-badge {
+        font-size: 11px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 3px;
+    }
+    .deadline-badge svg { width: 11px; height: 11px; stroke: currentColor; fill: none; }
+    .deadline-badge.overdue { color: var(--danger); font-weight: 600; }
+    .deadline-badge.soon    { color: var(--warning); font-weight: 600; }
+
+    /* ===== HABIT LIST ===== */
+    .habit-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 20px;
+        border-bottom: 1px solid var(--border);
+    }
+    .habit-item:last-child { border-bottom: none; }
+
+    .habit-info { flex: 1; min-width: 0; }
+    .habit-name { font-size: 14px; font-weight: 600; color: var(--text-main); }
+    .habit-freq { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    .streak-badge {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        background: #fff7ed;
+        color: #c2410c;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 20px;
+        white-space: nowrap;
+    }
+    .streak-badge svg { width: 13px; height: 13px; stroke: currentColor; fill: currentColor; }
+
+    .check-btn {
+        width: 32px; height: 32px;
+        border-radius: 50%;
+        border: 2px solid var(--border);
+        background: none;
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: all .15s;
+        flex-shrink: 0;
+    }
+    .check-btn svg { width: 14px; height: 14px; stroke: var(--text-muted); fill: none; stroke-width: 2; }
+    .check-btn:hover { border-color: var(--success); }
+    .check-btn:hover svg { stroke: var(--success); }
+    .check-btn.checked { background: var(--success); border-color: var(--success); }
+    .check-btn.checked svg { stroke: white; }
+
+    /* ===== PROGRESS BAR ===== */
+    .progress-wrap { padding: 16px 20px; }
+    .progress-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        margin-bottom: 8px;
+    }
+    .progress-label span:first-child { color: var(--text-muted); }
+    .progress-label span:last-child  { font-weight: 700; color: var(--primary); }
+
+    .progress-bar {
+        height: 8px;
+        background: var(--primary-light);
+        border-radius: 99px;
+        overflow: hidden;
+    }
+    .progress-fill {
+        height: 100%;
+        background: var(--primary);
+        border-radius: 99px;
+        transition: width .5s ease;
+    }
+
+    /* ===== EMPTY STATE ===== */
+    .empty {
+        text-align: center;
+        padding: 32px 20px;
+        color: var(--text-muted);
+        font-size: 14px;
+    }
+    .empty svg { width: 36px; height: 36px; stroke: var(--border); fill: none; margin-bottom: 8px; display: block; margin-inline: auto; }
+</style>
+@endpush
+
+@section('content')
+
+{{-- STATS --}}
+@php
+    $user        = auth()->user();
+    $allTodos    = $user->todos;
+    $todayTodos  = $allTodos->where('deadline', today()->toDateString());
+    $doneTodos   = $allTodos->where('is_done', true);
+    $pending     = $allTodos->where('is_done', false);
+    $overdue     = $pending->filter(fn($t) => $t->deadline && $t->deadline->isPast());
+    $habits      = $user->habits()->with('logs')->get();
+    $todayDone   = $habits->filter(fn($h) => $h->logs->contains(fn($l) => $l->completed_at->isToday()));
+
+    $pct = $allTodos->count() > 0 ? round($doneTodos->count() / $allTodos->count() * 100) : 0;
+@endphp
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon purple">
+            <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        </div>
+        <div class="stat-value">{{ $allTodos->count() }}</div>
+        <div class="stat-label">Total Tugas</div>
+        <div class="stat-sub">{{ $pct }}% selesai</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon green">
+            <svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div class="stat-value">{{ $doneTodos->count() }}</div>
+        <div class="stat-label">Tugas Selesai</div>
+        <div class="stat-sub">Kerja bagus!</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon orange">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="stat-value">{{ $pending->count() }}</div>
+        <div class="stat-label">Belum Selesai</div>
+        @if($overdue->count() > 0)
+            <div class="stat-sub warn">{{ $overdue->count() }} lewat deadline!</div>
+        @endif
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon red">
+            <svg viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <div class="stat-value">{{ $todayDone->count() }}/{{ $habits->count() }}</div>
+        <div class="stat-label">Habit Hari Ini</div>
+        <div class="stat-sub">Jaga konsistensimu!</div>
+    </div>
+</div>
+
+{{-- PROGRESS --}}
+<div class="card" style="margin-bottom: 20px;">
+    <div class="card-header">
+        <span class="card-title">
+            <svg viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            Progress Keseluruhan
+        </span>
+        <span style="font-size: 13px; font-weight: 700; color: var(--primary);">{{ $pct }}%</span>
+    </div>
+    <div class="progress-wrap">
+        <div class="progress-label">
+            <span>{{ $doneTodos->count() }} dari {{ $allTodos->count() }} tugas selesai</span>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: {{ $pct }}%"></div>
         </div>
     </div>
+</div>
 
-    <!-- Bottom Navigation Icon Bar (Mobile style) -->
-    <div class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900 rounded-full px-8 py-3 shadow-lg flex gap-4">
-        <a href="{{ route('dashboard') }}" class="text-gray-400 hover:text-gray-300">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-            </svg>
-        </a>
-        <a href="{{ route('todos.index') }}" class="text-gray-400 hover:text-gray-300">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
-            </svg>
-        </a>
-        <a href="{{ route('habits.index') }}" class="text-gray-400 hover:text-gray-300">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-        </a>
-        <a href="{{ route('profile.edit') }}" class="text-gray-400 hover:text-gray-300">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-            </svg>
-        </a>
+{{-- TWO COLS --}}
+<div class="dashboard-cols">
+
+    {{-- TODO HARI INI --}}
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Tugas Hari Ini
+            </span>
+            <a href="{{ route('todos.index') }}" class="card-link">Lihat semua →</a>
+        </div>
+
+        @forelse($todayTodos->take(5) as $todo)
+            <div class="todo-item">
+                <form method="POST" action="{{ route('todos.index', $todo->todos_id) }}">
+                    @csrf @method('PATCH')
+                    <button type="submit" class="todo-check {{ $todo->is_done ? 'done' : '' }}" title="Toggle">
+                        @if($todo->is_done)
+                            <svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+                        @endif
+                    </button>
+                </form>
+                <div style="flex:1; min-width:0;">
+                    <div class="todo-text {{ $todo->is_done ? 'done' : '' }}">{{ $todo->title }}</div>
+                    <div class="todo-meta">
+                        @if($todo->category)
+                            <span class="category-badge" style="background: {{ $todo->category->color }}">
+                                {{ $todo->category->name }}
+                            </span>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        @empty
+            <div class="empty">
+                <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                Tidak ada tugas untuk hari ini
+            </div>
+        @endforelse
     </div>
-</x-app-layout>
+
+    {{-- HABITS --}}
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">
+                <svg viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                Habit Hari Ini
+            </span>
+            <a href="{{ route('habits.index') }}" class="card-link">Kelola →</a>
+        </div>
+
+        @forelse($habits->take(5) as $habit)
+            @php $checkedToday = $habit->logs->contains(fn($l) => $l->completed_at->isToday()); @endphp
+            <div class="habit-item">
+                <div class="habit-info">
+                    <div class="habit-name">{{ $habit->name }}</div>
+                    <div class="habit-freq">{{ $habit->frequency === 'daily' ? 'Harian' : 'Mingguan' }}</div>
+                </div>
+                <div class="streak-badge">
+                    <svg viewBox="0 0 24 24" stroke-width="0"><path d="M12 2c.4 0 .7.2.9.5l2.8 5.6 6.2.9c.5.1.9.5.9 1s-.2.9-.5 1.2l-4.5 4.4 1.1 6.2c.1.5-.1 1-.5 1.3-.4.2-.9.3-1.3 0L12 20.1l-5.6 2.9c-.4.2-.9.2-1.3 0-.4-.3-.6-.8-.5-1.3l1.1-6.2L1.3 11c-.3-.3-.5-.7-.5-1.2s.4-.9.9-1l6.2-.9L10.1 2.5c.2-.3.5-.5.9-.5z"/></svg>
+                    {{ $habit->streak_count }}
+                </div>
+                <form method="POST" action="{{ route('habits.check', $habit->habits_id) }}">
+                    @csrf @method('PATCH')
+                    <button type="submit" class="check-btn {{ $checkedToday ? 'checked' : '' }}" title="Tandai selesai">
+                        <svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+                    </button>
+                </form>
+            </div>
+        @empty
+            <div class="empty">
+                <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                Belum ada habit. Yuk tambahkan!
+            </div>
+        @endforelse
+    </div>
+
+</div>
+@endsection

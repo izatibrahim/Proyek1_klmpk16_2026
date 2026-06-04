@@ -1,214 +1,354 @@
-<x-app-layout>
-    <div class="py-8 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
-        <div class="max-w-7xl mx-auto">
-            <!-- Header -->
-            <div class="flex items-center justify-between mb-8">
-                <div>
-                    <h1 class="text-4xl font-bold text-gray-900 mb-2">My Tasks</h1>
-                    <p class="text-gray-600">Manage and track your daily tasks</p>
-                </div>
-                <button onclick="document.getElementById('createModal').classList.remove('hidden')" class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition shadow-lg">
-                    + Add Task
-                </button>
+@extends('layouts.app')
+@section('title', 'To-Do List')
+@section('page-title', 'To-Do List')
+
+@push('styles')
+<style>
+    /* ===== LAYOUT ===== */
+    .todos-layout {
+        display: grid;
+        grid-template-columns: 340px 1fr;
+        gap: 24px;
+        align-items: start;
+    }
+    @media (max-width: 900px) {
+        .todos-layout { grid-template-columns: 1fr; }
+    }
+
+    /* ===== FORM TAMBAH ===== */
+    .form-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+        position: sticky;
+        top: 88px;
+    }
+
+    .form-title {
+        font-size: 15px; font-weight: 700; color: var(--text-main);
+        margin-bottom: 18px;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .form-title svg { width: 16px; height: 16px; stroke: var(--primary); fill: none; stroke-width: 2; }
+
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+
+    .form-input, .form-select, .form-textarea {
+        width: 100%; padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        font-size: 14px; color: var(--text-main);
+        background: var(--bg-page);
+        outline: none; transition: border-color .15s;
+        font-family: inherit;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+        border-color: var(--primary); background: white;
+    }
+    .form-textarea { resize: vertical; min-height: 80px; }
+
+    .btn-primary {
+        width: 100%;
+        display: flex; align-items: center; justify-content: center; gap: 6px;
+        background: var(--primary); color: white;
+        border: none; padding: 12px; border-radius: var(--radius-sm);
+        font-size: 14px; font-weight: 600; cursor: pointer;
+        transition: background .15s;
+    }
+    .btn-primary svg { width: 16px; height: 16px; stroke: white; fill: none; stroke-width: 2; }
+    .btn-primary:hover { background: var(--primary-dark); }
+
+    /* ===== FILTER BAR ===== */
+    .filter-bar {
+        display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;
+    }
+
+    .filter-btn {
+        padding: 7px 14px; border-radius: 99px;
+        border: 1px solid var(--border);
+        background: var(--bg-card); color: var(--text-muted);
+        font-size: 13px; font-weight: 600; cursor: pointer;
+        text-decoration: none; transition: all .15s;
+    }
+    .filter-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .filter-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
+
+    .filter-select {
+        padding: 7px 12px; border-radius: 99px;
+        border: 1px solid var(--border);
+        background: var(--bg-card); color: var(--text-muted);
+        font-size: 13px; cursor: pointer; outline: none;
+    }
+
+    .todos-count {
+        margin-left: auto;
+        font-size: 13px; color: var(--text-muted);
+    }
+    .todos-count strong { color: var(--text-main); }
+
+    /* ===== TODO CARD ===== */
+    .todo-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-bottom: 10px;
+        overflow: hidden;
+        transition: all .2s;
+    }
+    .todo-card:hover { border-color: var(--primary); }
+    .todo-card.done { opacity: .65; }
+
+    .todo-card-body {
+        display: flex; align-items: flex-start; gap: 14px; padding: 16px 18px;
+    }
+
+    .todo-check-circle {
+        width: 22px; height: 22px;
+        border-radius: 50%;
+        border: 2px solid var(--border);
+        flex-shrink: 0; margin-top: 1px;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: all .15s;
+        background: none;
+    }
+    .todo-check-circle:hover { border-color: var(--success); }
+    .todo-check-circle.done { background: var(--success); border-color: var(--success); }
+    .todo-check-circle svg { width: 12px; height: 12px; stroke: white; fill: none; stroke-width: 3; }
+
+    .todo-main { flex: 1; min-width: 0; }
+
+    .todo-title {
+        font-size: 15px; font-weight: 600; color: var(--text-main);
+        line-height: 1.4; margin-bottom: 6px;
+    }
+    .todo-title.done { text-decoration: line-through; color: var(--text-muted); }
+
+    .todo-desc {
+        font-size: 13px; color: var(--text-muted); margin-bottom: 8px;
+        line-height: 1.5;
+    }
+
+    .todo-tags { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .cat-tag {
+        font-size: 11px; font-weight: 700; padding: 3px 10px;
+        border-radius: 99px; color: white;
+    }
+
+    .deadline-tag {
+        font-size: 12px; color: var(--text-muted);
+        display: flex; align-items: center; gap: 4px;
+    }
+    .deadline-tag svg { width: 12px; height: 12px; stroke: currentColor; fill: none; }
+    .deadline-tag.overdue { color: var(--danger); font-weight: 600; }
+    .deadline-tag.soon    { color: var(--warning); font-weight: 600; }
+
+    .todo-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    .btn-icon {
+        width: 32px; height: 32px;
+        background: none; border: 1px solid var(--border);
+        border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: all .15s;
+    }
+    .btn-icon svg { width: 14px; height: 14px; stroke: var(--text-muted); fill: none; stroke-width: 2; }
+    .btn-icon:hover { background: var(--bg-page); }
+    .btn-icon.del:hover { background: #fef2f2; border-color: var(--danger); }
+    .btn-icon.del:hover svg { stroke: var(--danger); }
+
+    /* ===== INLINE EDIT ===== */
+    .todo-edit-panel {
+        display: none;
+        border-top: 1px solid var(--border);
+        padding: 16px 18px;
+        background: var(--bg-page);
+    }
+    .todo-edit-panel.open { display: block; }
+
+    .edit-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .edit-input { padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; background: white; color: var(--text-main); outline: none; }
+    .edit-input:focus { border-color: var(--primary); }
+    .btn-save { padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; }
+
+    /* ===== EMPTY ===== */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+    .empty-state svg { width: 56px; height: 56px; stroke: var(--border); fill: none; margin-bottom: 16px; stroke-width: 1.5; }
+    .empty-state p { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .empty-state small { font-size: 13px; }
+</style>
+@endpush
+
+@section('content')
+
+<div class="todos-layout">
+
+    {{-- FORM TAMBAH --}}
+    <div class="form-card">
+        <div class="form-title">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Tambah Tugas
+        </div>
+
+        <form method="POST" action="{{ route('todos.store') }}">
+            @csrf
+            <div class="form-group">
+                <label>Judul Tugas *</label>
+                <input type="text" name="title" class="form-input" placeholder="Apa yang perlu dikerjakan?" required value="{{ old('title') }}">
+                @error('title')<p style="color:var(--danger);font-size:11px;margin-top:4px;">{{ $message }}</p>@enderror
             </div>
 
-            <!-- Success Message -->
-            @if (session('success'))
-                <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 flex items-center gap-3">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                    </svg>
-                    {{ session('success') }}
-                </div>
-            @endif
+            <div class="form-group">
+                <label>Deskripsi</label>
+                <textarea name="description" class="form-textarea" placeholder="Catatan tambahan (opsional)...">{{ old('description') }}</textarea>
+            </div>
 
-            <!-- Filters -->
-            <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <!-- Status Filter -->
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
-                        <form method="GET" action="{{ route('todos.index') }}" id="filterForm" class="space-y-2">
-                            <select name="status" onchange="document.getElementById('filterForm').submit()" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none">
-                                <option value="">All Tasks</option>
-                                <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
-                                <option value="done" {{ request('status') === 'done' ? 'selected' : '' }}>Completed</option>
-                            </select>
-                        </form>
+            <div class="form-group">
+                <label>Kategori</label>
+                <select name="category_id" class="form-select">
+                    <option value="">— Tanpa Kategori —</option>
+                    @foreach($categories as $cat)
+                        <option value="{{ $cat->categories_id }}" {{ old('category_id') == $cat->categories_id ? 'selected' : '' }}>
+                            {{ $cat->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Deadline</label>
+                <input type="date" name="deadline" class="form-input" value="{{ old('deadline') }}" min="{{ today()->toDateString() }}">
+            </div>
+
+            <button type="submit" class="btn-primary">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Tambah Tugas
+            </button>
+        </form>
+    </div>
+
+    {{-- DAFTAR TUGAS --}}
+    <div>
+        {{-- FILTER BAR --}}
+        <div class="filter-bar">
+            <a href="{{ route('todos.index') }}" class="filter-btn {{ !request('status') && !request('category_id') ? 'active' : '' }}">Semua</a>
+            <a href="{{ route('todos.index', ['status' => 'pending']) }}" class="filter-btn {{ request('status') === 'pending' ? 'active' : '' }}">Belum Selesai</a>
+            <a href="{{ route('todos.index', ['status' => 'done']) }}" class="filter-btn {{ request('status') === 'done' ? 'active' : '' }}">Selesai</a>
+
+            <form method="GET" action="{{ route('todos.index') }}" style="display:inline">
+                @if(request('status'))
+                    <input type="hidden" name="status" value="{{ request('status') }}">
+                @endif
+                <select name="category_id" class="filter-select" onchange="this.form.submit()">
+                    <option value="">Semua Kategori</option>
+                    @foreach($categories as $cat)
+                        <option value="{{ $cat->categories_id }}" {{ request('category_id') == $cat->categories_id ? 'selected' : '' }}>
+                            {{ $cat->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </form>
+
+            <span class="todos-count"><strong>{{ $todos->count() }}</strong> tugas</span>
+        </div>
+
+        {{-- TODOS --}}
+        @forelse($todos as $todo)
+            @php
+                $isOverdue = !$todo->is_done && $todo->deadline && $todo->deadline->isPast();
+                $isSoon    = !$todo->is_done && $todo->deadline && $todo->deadline->isToday();
+            @endphp
+
+            <div class="todo-card {{ $todo->is_done ? 'done' : '' }}" id="todo-{{ $todo->todos_id }}">
+                <div class="todo-card-body">
+
+                    {{-- CHECK --}}
+                    <form method="POST" action="{{ route('todos.toggle', $todo->todos_id) }}">
+                        @csrf @method('PATCH')
+                        <button type="submit" class="todo-check-circle {{ $todo->is_done ? 'done' : '' }}" title="Toggle selesai">
+                            @if($todo->is_done)
+                                <svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+                            @endif
+                        </button>
+                    </form>
+
+                    {{-- KONTEN --}}
+                    <div class="todo-main">
+                        <div class="todo-title {{ $todo->is_done ? 'done' : '' }}">{{ $todo->title }}</div>
+                        @if($todo->description)
+                            <div class="todo-desc">{{ Str::limit($todo->description, 80) }}</div>
+                        @endif
+                        <div class="todo-tags">
+                            @if($todo->category)
+                                <span class="cat-tag" style="background: {{ $todo->category->color }}">{{ $todo->category->name }}</span>
+                            @endif
+                            @if($todo->deadline)
+                                <span class="deadline-tag {{ $isOverdue ? 'overdue' : ($isSoon ? 'soon' : '') }}">
+                                    <svg viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                    {{ $isOverdue ? 'Terlambat · ' : ($isSoon ? 'Hari ini · ' : '') }}
+                                    {{ $todo->deadline->translatedFormat('d M Y') }}
+                                </span>
+                            @endif
+                        </div>
                     </div>
 
-                    <!-- Category Filter -->
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Category</label>
-                        <form method="GET" action="{{ route('todos.index') }}" class="space-y-2">
-                            <select name="category_id" onchange="this.form.submit()" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none">
-                                <option value="">All Categories</option>
-                                @foreach($categories as $category)
-                                    <option value="{{ $category->categories_id }}" {{ request('category_id') == $category->categories_id ? 'selected' : '' }}>
-                                        {{ $category->name }}
+                    {{-- AKSI --}}
+                    <div class="todo-actions">
+                        <button class="btn-icon" onclick="toggleEdit({{ $todo->todos_id }})" title="Edit">
+                            <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                        <form method="POST" action="{{ route('todos.destroy', $todo->todos_id) }}" onsubmit="return confirm('Hapus tugas ini?')">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="btn-icon del" title="Hapus">
+                                <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                {{-- INLINE EDIT --}}
+                <div class="todo-edit-panel" id="edit-{{ $todo->todos_id }}">
+                    <form method="POST" action="{{ route('todos.update', $todo->todos_id) }}">
+                        @csrf @method('PUT')
+                        <div class="edit-row" style="margin-bottom: 10px;">
+                            <input type="text" name="title" class="edit-input" style="flex:1; min-width:180px;"
+                                   value="{{ $todo->title }}" required>
+                            <select name="category_id" class="edit-input">
+                                <option value="">— Tanpa Kategori —</option>
+                                @foreach($categories as $cat)
+                                    <option value="{{ $cat->categories_id }}" {{ $todo->category_id == $cat->categories_id ? 'selected' : '' }}>
+                                        {{ $cat->name }}
                                     </option>
                                 @endforeach
                             </select>
-                        </form>
-                    </div>
-
-                    <!-- Stats -->
-                    <div class="flex items-end gap-4">
-                        <div class="text-center flex-1">
-                            <p class="text-2xl font-bold text-indigo-600">{{ $todos->count() }}</p>
-                            <p class="text-sm text-gray-600">Total Tasks</p>
+                            <input type="date" name="deadline" class="edit-input"
+                                   value="{{ $todo->deadline ? $todo->deadline->toDateString() : '' }}">
                         </div>
-                        <div class="text-center flex-1">
-                            <p class="text-2xl font-bold text-green-600">{{ $todos->where('is_done', true)->count() }}</p>
-                            <p class="text-sm text-gray-600">Completed</p>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <textarea name="description" class="edit-input" style="flex:1; min-height:60px; resize:vertical;"
+                                      placeholder="Deskripsi...">{{ $todo->description }}</textarea>
+                            <button type="submit" class="btn-save">Simpan</button>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </div>
-
-            <!-- Tasks List -->
-            <div class="space-y-4">
-                @forelse($todos as $todo)
-                    <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition border-l-4" style="border-color: {{ $todo->category->color ?? '#6366f1' }}">
-                        <div class="flex items-start justify-between gap-4">
-                            <!-- Left Content -->
-                            <div class="flex-1">
-                                <div class="flex items-center gap-3 mb-2">
-                                    <!-- Checkbox -->
-                                    <form method="POST" action="{{ route('todos.toggle', $todo->todos_id) }}" style="display:inline">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button type="submit" class="flex-shrink-0">
-                                            @if($todo->is_done)
-                                                <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                                                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                                    </svg>
-                                                </div>
-                                            @else
-                                                <div class="w-6 h-6 border-2 border-gray-300 rounded-full hover:border-indigo-500"></div>
-                                            @endif
-                                        </button>
-                                    </form>
-
-                                    <!-- Title -->
-                                    <div>
-                                        <h3 class="font-semibold text-gray-900 {{ $todo->is_done ? 'line-through text-gray-400' : '' }}">
-                                            {{ $todo->title }}
-                                        </h3>
-                                    </div>
-                                </div>
-
-                                <!-- Description & Meta -->
-                                @if($todo->description)
-                                    <p class="text-gray-600 text-sm mb-2 {{ $todo->is_done ? 'line-through' : '' }}">{{ $todo->description }}</p>
-                                @endif
-
-                                <div class="flex flex-wrap items-center gap-3 text-sm">
-                                    <!-- Category Badge -->
-                                    @if($todo->category)
-                                        <span class="px-3 py-1 rounded-full text-white text-xs font-semibold" style="background-color: {{ $todo->category->color }}">
-                                            {{ $todo->category->name }}
-                                        </span>
-                                    @endif
-
-                                    <!-- Deadline -->
-                                    @if($todo->deadline)
-                                        <div class="flex items-center gap-1 text-gray-600">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                            </svg>
-                                            {{ $todo->deadline->format('M d, Y') }}
-                                        </div>
-                                    @endif
-
-                                    <!-- Status Badge -->
-                                    @if($todo->is_done)
-                                        <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">Completed</span>
-                                    @else
-                                        <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">Pending</span>
-                                    @endif
-                                </div>
-                            </div>
-
-                            <!-- Actions -->
-                            <div class="flex items-center gap-2">
-                                <button onclick="editTodo({{ $todo }})" class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                    </svg>
-                                </button>
-                                <form method="POST" action="{{ route('todos.destroy', $todo->todos_id) }}" style="display:inline" onsubmit="return confirm('Delete this task?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                        </svg>
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                @empty
-                    <div class="bg-white rounded-lg shadow-md p-12 text-center">
-                        <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
-                        </svg>
-                        <p class="text-gray-500 text-lg">No tasks yet. Create one to get started!</p>
-                    </div>
-                @endforelse
+        @empty
+            <div class="empty-state">
+                <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                <p>Belum ada tugas</p>
+                <small>Tambahkan tugas pertamamu melalui form di samping!</small>
             </div>
-        </div>
+        @endforelse
     </div>
+</div>
+@endsection
 
-    <!-- Create/Edit Modal -->
-    <div id="createModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-8">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">Add New Task</h2>
-            <form method="POST" action="{{ route('todos.store') }}" class="space-y-6">
-                @csrf
-                <div>
-                    <label for="title" class="block text-sm font-semibold text-gray-900 mb-2">Task Title</label>
-                    <input type="text" id="title" name="title" required class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none" placeholder="Enter task title">
-                </div>
-
-                <div>
-                    <label for="description" class="block text-sm font-semibold text-gray-900 mb-2">Description</label>
-                    <textarea id="description" name="description" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none" placeholder="Enter description (optional)" rows="3"></textarea>
-                </div>
-
-                <div>
-                    <label for="category_id" class="block text-sm font-semibold text-gray-900 mb-2">Category</label>
-                    <select id="category_id" name="category_id" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none">
-                        <option value="">Select a category</option>
-                        @foreach($categories as $category)
-                            <option value="{{ $category->categories_id }}">{{ $category->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div>
-                    <label for="deadline" class="block text-sm font-semibold text-gray-900 mb-2">Deadline</label>
-                    <input type="date" id="deadline" name="deadline" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none">
-                </div>
-
-                <div class="flex gap-3">
-                    <button type="button" onclick="document.getElementById('createModal').classList.add('hidden')" class="flex-1 px-4 py-2 border-2 border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition">
-                        Cancel
-                    </button>
-                    <button type="submit" class="flex-1 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-lg hover:from-indigo-700 hover:to-purple-700 transition">
-                        Add Task
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script>
-        function editTodo(todo) {
-            // Redirect to edit form (akan buat view terpisah)
-            window.location.href = '/todos/' + todo.todos_id + '/edit';
-        }
-    </script>
-</x-app-layout>
+@push('scripts')
+<script>
+function toggleEdit(id) {
+    const panel = document.getElementById('edit-' + id);
+    panel.classList.toggle('open');
+}
+</script>
+@endpush

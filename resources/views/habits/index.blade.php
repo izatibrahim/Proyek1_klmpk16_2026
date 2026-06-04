@@ -1,144 +1,343 @@
-<x-app-layout>
-    <div class="py-8 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
-        <div class="max-w-7xl mx-auto">
-            <!-- Header -->
-            <div class="flex items-center justify-between mb-8">
-                <div>
-                    <h1 class="text-4xl font-bold text-gray-900 mb-2">My Habits</h1>
-                    <p class="text-gray-600">Build and track your daily and weekly habits</p>
-                </div>
-                <button onclick="document.getElementById('createModal').classList.remove('hidden')" class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition shadow-lg">
-                    + Add Habit
-                </button>
+@extends('layouts.app')
+@section('title', 'Habit Tracker')
+@section('page-title', 'Habit Tracker')
+
+@push('styles')
+<style>
+    /* ===== LAYOUT ===== */
+    .habits-layout {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: 24px;
+        align-items: start;
+    }
+    @media (max-width: 900px) {
+        .habits-layout { grid-template-columns: 1fr; }
+    }
+
+    /* ===== FORM ===== */
+    .form-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+        position: sticky;
+        top: 88px;
+    }
+
+    .form-title {
+        font-size: 15px; font-weight: 700; color: var(--text-main);
+        margin-bottom: 18px;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .form-title svg { width: 16px; height: 16px; stroke: var(--primary); fill: none; stroke-width: 2; }
+
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+
+    .form-input, .form-select {
+        width: 100%; padding: 10px 12px;
+        border: 1px solid var(--border); border-radius: var(--radius-sm);
+        font-size: 14px; color: var(--text-main);
+        background: var(--bg-page); outline: none;
+        transition: border-color .15s; font-family: inherit;
+    }
+    .form-input:focus, .form-select:focus { border-color: var(--primary); background: white; }
+
+    .freq-options { display: flex; gap: 10px; }
+
+    .freq-btn {
+        flex: 1; padding: 10px; border-radius: var(--radius-sm);
+        border: 2px solid var(--border); background: var(--bg-page);
+        font-size: 13px; font-weight: 600; color: var(--text-muted);
+        cursor: pointer; text-align: center; transition: all .15s;
+    }
+    .freq-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .freq-btn.selected { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+
+    .btn-primary {
+        width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;
+        background: var(--primary); color: white;
+        border: none; padding: 12px; border-radius: var(--radius-sm);
+        font-size: 14px; font-weight: 600; cursor: pointer; transition: background .15s;
+    }
+    .btn-primary svg { width: 16px; height: 16px; stroke: white; fill: none; stroke-width: 2; }
+    .btn-primary:hover { background: var(--primary-dark); }
+
+    /* ===== HABIT CARDS ===== */
+    .habit-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-bottom: 14px;
+        overflow: hidden;
+        transition: border-color .2s;
+    }
+    .habit-card:hover { border-color: var(--primary); }
+    .habit-card.done-today { border-left: 4px solid var(--success); }
+
+    .habit-card-top {
+        display: flex; align-items: center; gap: 14px; padding: 18px 20px;
+    }
+
+    .habit-icon {
+        width: 46px; height: 46px;
+        background: var(--primary-light);
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 22px;
+        flex-shrink: 0;
+    }
+    .habit-icon.done { background: #d1fae5; }
+
+    .habit-info { flex: 1; min-width: 0; }
+
+    .habit-name { font-size: 16px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; }
+
+    .habit-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    .freq-badge {
+        font-size: 11px; font-weight: 700; padding: 3px 10px;
+        border-radius: 99px; text-transform: uppercase; letter-spacing: .05em;
+    }
+    .freq-badge.daily   { background: #ede9fe; color: #6d28d9; }
+    .freq-badge.weekly  { background: #dbeafe; color: #1e40af; }
+
+    .streak-display {
+        display: flex; align-items: center; gap: 5px;
+        font-size: 13px; font-weight: 700; color: #c2410c;
+    }
+    .streak-display svg { width: 15px; height: 15px; }
+
+    .habit-right { display: flex; align-items: center; gap: 10px; }
+
+    .check-big {
+        width: 44px; height: 44px;
+        border-radius: 50%;
+        border: 2px solid var(--border);
+        background: none; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: all .2s;
+        flex-shrink: 0;
+    }
+    .check-big svg { width: 20px; height: 20px; stroke: var(--text-muted); fill: none; stroke-width: 2; }
+    .check-big:hover { border-color: var(--success); background: #f0fdf4; }
+    .check-big:hover svg { stroke: var(--success); }
+    .check-big.done { background: var(--success); border-color: var(--success); }
+    .check-big.done svg { stroke: white; }
+
+    .btn-icon {
+        width: 34px; height: 34px;
+        background: none; border: 1px solid var(--border);
+        border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: all .15s;
+    }
+    .btn-icon svg { width: 14px; height: 14px; stroke: var(--text-muted); fill: none; stroke-width: 2; }
+    .btn-icon.del:hover { background: #fef2f2; border-color: var(--danger); }
+    .btn-icon.del:hover svg { stroke: var(--danger); }
+
+    /* ===== MINI CALENDAR (7 hari terakhir) ===== */
+    .habit-calendar {
+        border-top: 1px solid var(--border);
+        padding: 12px 20px 14px;
+        background: var(--bg-page);
+    }
+
+    .cal-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin-bottom: 8px; }
+
+    .cal-dots { display: flex; gap: 8px; align-items: center; }
+
+    .cal-day {
+        display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+
+    .cal-day-name { font-size: 10px; color: var(--text-muted); font-weight: 600; }
+
+    .cal-dot {
+        width: 28px; height: 28px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 11px; font-weight: 600;
+        border: 1px solid var(--border);
+    }
+    .cal-dot.filled { background: var(--success); border-color: var(--success); color: white; }
+    .cal-dot.today  { border-color: var(--primary); color: var(--primary); font-weight: 800; }
+    .cal-dot.today.filled { background: var(--primary); border-color: var(--primary); color: white; }
+
+    /* ===== EMPTY ===== */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+    .empty-state svg { width: 56px; height: 56px; stroke: var(--border); fill: none; margin-bottom: 16px; stroke-width: 1.5; }
+    .empty-state p { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .empty-state small { font-size: 13px; }
+
+    /* ===== SUMMARY BAR ===== */
+    .summary-bar {
+        display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+
+    .summary-pill {
+        background: var(--bg-card); border: 1px solid var(--border);
+        border-radius: 99px; padding: 8px 16px;
+        font-size: 13px; color: var(--text-muted);
+        display: flex; align-items: center; gap: 6px;
+    }
+    .summary-pill strong { color: var(--text-main); }
+    .summary-pill.highlight { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+    .summary-pill.highlight strong { color: var(--primary); }
+</style>
+@endpush
+
+@section('content')
+
+@php
+    $totalHabits  = $habits->count();
+    $doneToday    = $habits->filter(fn($h) => $h->logs->contains(fn($l) => $l->completed_at->isToday()))->count();
+    $bestStreak   = $habits->max('streak_count') ?? 0;
+@endphp
+
+<div class="habits-layout">
+
+    {{-- FORM TAMBAH --}}
+    <div class="form-card">
+        <div class="form-title">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Tambah Habit Baru
+        </div>
+
+        <form method="POST" action="{{ route('habits.store') }}" id="habitForm">
+            @csrf
+            <div class="form-group">
+                <label>Nama Kebiasaan *</label>
+                <input type="text" name="name" class="form-input" placeholder="cth. Baca buku 30 menit..." required value="{{ old('name') }}">
+                @error('name')<p style="color:var(--danger);font-size:11px;margin-top:4px;">{{ $message }}</p>@enderror
             </div>
 
-            <!-- Success Message -->
-            @if (session('success'))
-                <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 flex items-center gap-3">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                    </svg>
-                    {{ session('success') }}
+            <div class="form-group">
+                <label>Frekuensi *</label>
+                <div class="freq-options">
+                    <div class="freq-btn {{ old('frequency', 'daily') === 'daily' ? 'selected' : '' }}"
+                         onclick="setFreq('daily', this)">
+                        🌅 Harian
+                    </div>
+                    <div class="freq-btn {{ old('frequency') === 'weekly' ? 'selected' : '' }}"
+                         onclick="setFreq('weekly', this)">
+                        📅 Mingguan
+                    </div>
                 </div>
-            @endif
+                <input type="hidden" name="frequency" id="freqInput" value="{{ old('frequency', 'daily') }}">
+            </div>
 
-            <!-- Habits Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                @forelse($habits as $habit)
-                    <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
-                        <!-- Header -->
-                        <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-6 text-white">
-                            <div class="flex items-start justify-between mb-4">
-                                <div>
-                                    <h3 class="text-xl font-bold mb-1">{{ $habit->name }}</h3>
-                                    <p class="text-indigo-100 text-sm">{{ ucfirst($habit->frequency) }} Habit</p>
-                                </div>
-                                <form method="POST" action="{{ route('habits.destroy', $habit->habits_id) }}" style="display:inline" onsubmit="return confirm('Delete this habit?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-indigo-200 hover:text-white">
-                                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                                        </svg>
-                                    </button>
-                                </form>
-                            </div>
+            <button type="submit" class="btn-primary">
+                <svg viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                Tambah Habit
+            </button>
+        </form>
+    </div>
+
+    {{-- DAFTAR HABITS --}}
+    <div>
+        {{-- SUMMARY --}}
+        @if($totalHabits > 0)
+        <div class="summary-bar">
+            <div class="summary-pill highlight">
+                <strong>{{ $doneToday }}/{{ $totalHabits }}</strong> selesai hari ini
+            </div>
+            <div class="summary-pill">
+                🔥 Streak terbaik: <strong>{{ $bestStreak }} hari</strong>
+            </div>
+            <div class="summary-pill">
+                📋 Total habit: <strong>{{ $totalHabits }}</strong>
+            </div>
+        </div>
+        @endif
+
+        @forelse($habits as $habit)
+            @php
+                $checkedToday = $habit->logs->contains(fn($l) => $l->completed_at->isToday());
+                $logDates     = $habit->logs->pluck('completed_at')->map(fn($d) => $d->toDateString())->toArray();
+                $last7        = collect(range(6, 0))->map(fn($i) => now()->subDays($i));
+            @endphp
+
+            <div class="habit-card {{ $checkedToday ? 'done-today' : '' }}">
+                <div class="habit-card-top">
+                    <div class="habit-icon {{ $checkedToday ? 'done' : '' }}">
+                        {{ $checkedToday ? '✅' : '⚡' }}
+                    </div>
+
+                    <div class="habit-info">
+                        <div class="habit-name">{{ $habit->name }}</div>
+                        <div class="habit-meta">
+                            <span class="freq-badge {{ $habit->frequency }}">
+                                {{ $habit->frequency === 'daily' ? '🌅 Harian' : '📅 Mingguan' }}
+                            </span>
+                            @if($habit->streak_count > 0)
+                                <span class="streak-display">
+                                    🔥 {{ $habit->streak_count }} hari streak
+                                </span>
+                            @endif
                         </div>
+                    </div>
 
-                        <!-- Content -->
-                        <div class="p-6">
-                            <!-- Streak -->
-                            <div class="text-center mb-6">
-                                <p class="text-4xl font-bold text-indigo-600">{{ $habit->streak_count }}</p>
-                                <p class="text-gray-600 text-sm">day{{ $habit->streak_count !== 1 ? 's' : '' }} streak</p>
-                            </div>
+                    <div class="habit-right">
+                        {{-- TOMBOL CHECK --}}
+                        <form method="POST" action="{{ route('habits.check', $habit->habits_id) }}">
+                            @csrf @method('PATCH')
+                            <button type="submit" class="check-big {{ $checkedToday ? 'done' : '' }}"
+                                    title="{{ $checkedToday ? 'Sudah selesai hari ini!' : 'Tandai selesai' }}"
+                                    {{ $checkedToday ? 'disabled' : '' }}>
+                                <svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+                            </button>
+                        </form>
 
-                            <!-- Check Today Button -->
+                        {{-- HAPUS --}}
+                        <form method="POST" action="{{ route('habits.destroy', $habit->habits_id) }}" onsubmit="return confirm('Hapus habit ini? Semua log akan terhapus.')">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="btn-icon del" title="Hapus">
+                                <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                {{-- MINI CALENDAR 7 HARI --}}
+                <div class="habit-calendar">
+                    <div class="cal-label">7 Hari Terakhir</div>
+                    <div class="cal-dots">
+                        @foreach($last7 as $day)
                             @php
-                                $today = now()->toDateString();
-                                $checkedToday = $habit->logs()->whereDate('completed_at', $today)->exists();
+                                $dayStr    = $day->toDateString();
+                                $filled    = in_array($dayStr, $logDates);
+                                $isToday   = $day->isToday();
+                                $dayNames  = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+                                $dayName   = $dayNames[$day->dayOfWeek];
                             @endphp
-                            
-                            <form method="POST" action="{{ route('habits.check', $habit->habits_id) }}" class="mb-6">
-                                @csrf
-                                @method('PATCH')
-                                <button 
-                                    type="submit" 
-                                    {{ $checkedToday ? 'disabled' : '' }}
-                                    class="w-full py-3 rounded-lg font-semibold transition {{ $checkedToday ? 'bg-green-100 text-green-600 cursor-not-allowed' : 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200' }}"
-                                >
-                                    {{ $checkedToday ? '✓ Completed Today' : 'Check Today' }}
-                                </button>
-                            </form>
-
-                            <!-- Recent Logs -->
-                            <div class="border-t pt-4">
-                                <p class="text-sm font-semibold text-gray-700 mb-3">Recent Activity</p>
-                                <div class="space-y-2">
-                                    @forelse($habit->logs()->latest('completed_at')->take(5)->get() as $log)
-                                        <div class="flex items-center justify-between text-sm">
-                                            <span class="text-gray-600">{{ $log->completed_at->format('M d, Y') }}</span>
-                                            <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                            </svg>
-                                        </div>
-                                    @empty
-                                        <p class="text-gray-400 text-sm">No activity yet</p>
-                                    @endforelse
+                            <div class="cal-day">
+                                <span class="cal-day-name">{{ $dayName }}</span>
+                                <div class="cal-dot {{ $filled ? 'filled' : '' }} {{ $isToday ? 'today' : '' }}">
+                                    {{ $day->format('d') }}
                                 </div>
                             </div>
-
-                            <!-- Total Completions -->
-                            <div class="mt-4 pt-4 border-t">
-                                <p class="text-center text-xs text-gray-500">
-                                    {{ $habit->logs()->count() }} total completion{{ $habit->logs()->count() !== 1 ? 's' : '' }}
-                                </p>
-                            </div>
-                        </div>
+                        @endforeach
                     </div>
-                @empty
-                    <div class="col-span-full bg-white rounded-lg shadow-md p-12 text-center">
-                        <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <p class="text-gray-500 text-lg mb-4">No habits yet. Create one to get started!</p>
-                        <button onclick="document.getElementById('createModal').classList.remove('hidden')" class="inline-block bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold py-2 px-6 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition">
-                            Add Your First Habit
-                        </button>
-                    </div>
-                @endforelse
+                </div>
             </div>
-        </div>
+        @empty
+            <div class="empty-state">
+                <svg viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <p>Belum ada habit</p>
+                <small>Mulai membangun kebiasaan positifmu sekarang!</small>
+            </div>
+        @endforelse
     </div>
+</div>
+@endsection
 
-    <!-- Create Modal -->
-    <div id="createModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-8">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">Create New Habit</h2>
-            <form method="POST" action="{{ route('habits.store') }}" class="space-y-6">
-                @csrf
-                <div>
-                    <label for="name" class="block text-sm font-semibold text-gray-900 mb-2">Habit Name</label>
-                    <input type="text" id="name" name="name" required class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none" placeholder="e.g., Morning Exercise">
-                </div>
-
-                <div>
-                    <label for="frequency" class="block text-sm font-semibold text-gray-900 mb-2">Frequency</label>
-                    <select id="frequency" name="frequency" required class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none">
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                    </select>
-                </div>
-
-                <div class="flex gap-3">
-                    <button type="button" onclick="document.getElementById('createModal').classList.add('hidden')" class="flex-1 px-4 py-2 border-2 border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition">
-                        Cancel
-                    </button>
-                    <button type="submit" class="flex-1 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-lg hover:from-indigo-700 hover:to-purple-700 transition">
-                        Create Habit
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</x-app-layout>
+@push('scripts')
+<script>
+function setFreq(val, el) {
+    document.getElementById('freqInput').value = val;
+    document.querySelectorAll('.freq-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+}
+</script>
+@endpush
