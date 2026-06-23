@@ -21,7 +21,7 @@ class CategoryController extends Controller
      */
     public function create()
     {
-        //
+        return view('categories.create');
     }
 
     /**
@@ -34,7 +34,7 @@ class CategoryController extends Controller
             'color' => 'required|string|size:7',
         ]);
         auth()->user()->categories()->create($request->only('name', 'color'));
-        return back()->with('success', 'Kategori berhasil ditambahkan!');
+        return redirect()->route('categories.index')->with('success', 'Kategori berhasil ditambahkan!');
     }
 
     /**
@@ -50,7 +50,8 @@ class CategoryController extends Controller
      */
     public function edit(Category $category)
     {
-        //
+        abort_if($category->user_id !== auth()->id(), 404);
+        return view('categories.edit', compact('category'));
     }
 
     /**
@@ -59,9 +60,9 @@ class CategoryController extends Controller
     public function update(Request $request, Category $category) 
     {
         abort_if($category->user_id !== auth()->id(), 404);
-        $request->validate(['name' => 'required|string|max:100', 'color' => 'required']);
+        $request->validate(['name' => 'required|string|max:100', 'color' => 'required|string|size:7']);
         $category->update($request->only('name', 'color'));
-        return back()->with('success', 'Kategori diperbarui!');
+        return redirect()->route('categories.index')->with('success', 'Kategori diperbarui!');
     }
 
     /**

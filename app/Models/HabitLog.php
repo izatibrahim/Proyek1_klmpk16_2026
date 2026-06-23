@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class HabitLog extends Model
 {
     protected $primaryKey = 'habit_logs_id';
-    protected $fillable = ['habit_id', 'completed_at'];
+    protected $fillable = ['habit_id', 'completed_at', 'note'];
     protected $casts = ['completed_at' => 'date'];
 
     public function habit() {

@@ -22,6 +22,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'phone',
     ];
 
     /**
@@ -33,6 +34,12 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+
+protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+    ];
+
 
     /**
      * Get the attributes that should be cast.
@@ -60,5 +67,10 @@ class User extends Authenticatable
     public function habits()
     {
         return $this->hasMany(Habit::class, 'user_id');
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class, 'user_id');
     }
 }

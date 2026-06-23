@@ -106,6 +106,14 @@
                                 />
                                 <x-input-error :messages="$errors->get('name')" class="mt-2 text-red-600 text-sm" />
                             </div>
+                            
+                            <!-- Phone -->
+                            <div>
+                                <x-input-label for="phone" :value="__('No. HP (opsional)')" />
+                                <x-text-input id="phone" class="block mt-1 w-full" type="text"
+                                    name="phone" :value="old('phone')" autocomplete="tel" />
+                                <x-input-error :messages="$errors->get('phone')" class="mt-2" />
+                            </div>
 
                             <!-- Email Address -->
                             <div>

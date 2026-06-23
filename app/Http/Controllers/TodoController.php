@@ -31,7 +31,8 @@ class TodoController extends Controller
      */
     public function create()
     {
-        //
+        $categories = auth()->user()->categories()->get();
+        return view('todos.create', compact('categories'));
     }
 
     /**
@@ -46,7 +47,7 @@ class TodoController extends Controller
             'deadline'    => 'nullable|date',
         ]);
         auth()->user()->todos()->create($request->all());
-        return back()->with('success', 'Tugas ditambahkan!');
+        return redirect()->route('todos.index')->with('success', 'Tugas ditambahkan!');
     }
 
     /**
@@ -79,7 +80,7 @@ class TodoController extends Controller
             'deadline'    => 'nullable|date',
         ]);
         $todo->update($request->all());
-        return back()->with('success', 'Tugas diperbarui!');
+        return redirect()->route('todos.index')->with('success', 'Tugas diperbarui!');
     }
 
     public function toggleDone(Todo $todo) 
@@ -96,7 +97,7 @@ class TodoController extends Controller
     {
         abort_if($todo->user_id !== auth()->id(), 404);
         $todo->delete();
-        return back()->with('success', 'Tugas dihapus!');
+        return redirect()->route('todos.index')->with('success', 'Tugas dihapus!');
     }
 
 }
